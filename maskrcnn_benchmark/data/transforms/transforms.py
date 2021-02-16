@@ -4,8 +4,14 @@ import random
 import torch
 import torchvision
 from torchvision.transforms import functional as F
+from skimage import util
+from skimage import transform as T
+import numpy as np
 
 import numbers
+
+import warnings
+warnings.filterwarnings('ignore', message='Possible precision loss when converting from float64 to float32')
 
 
 class Compose(object):
@@ -60,11 +66,11 @@ class Resize(object):
         return (oh, ow), im_scale
 
     def __call__(self, image, target=None):
-        size, im_scale = self.get_size(image.size)
-        image = F.resize(image, size)
+        size, im_scale = self.get_size(image.shape[:2])
+        image =  util.img_as_float32(T.resize(image, size))
         if target is None:
             return image
-        target = target.resize(image.size)
+        target = target.resize(image.shape[:2])
         # target.im_scale = im_scale
         target.add_field("scale", im_scale)
         return image, target
@@ -76,7 +82,7 @@ class RandomHorizontalFlip(object):
 
     def __call__(self, image, target):
         if random.random() < self.prob:
-            image = F.hflip(image)
+            image = image[:,::-1,...]
             target = target.transpose(0)
         return image, target
 
@@ -87,7 +93,7 @@ class RandomVerticalFlip(object):
 
     def __call__(self, image, target):
         if random.random() < self.prob:
-            image = F.vflip(image)
+            image = image[::-1,...]
             target = target.transpose(1)
         return image, target
 
@@ -112,7 +118,8 @@ class ColorJitter(object):
 
 class ToTensor(object):
     def __call__(self, image, target):
-        return F.to_tensor(image), target
+        image = torch.from_numpy(image.transpose([2,0,1]).copy())
+        return image, target
 
 
 class Normalize(object):
@@ -123,7 +130,7 @@ class Normalize(object):
 
     def __call__(self, image, target=None):
         if self.to_bgr255:
-            image = image[[2, 1, 0]] * 255
+            image = image[[2, 1, 0, 3, 4]] * 255
         image = F.normalize(image, mean=self.mean, std=self.std)
         return image, target
 
@@ -161,5 +168,5 @@ class RandomRotation(object):
             print("Value error thrown, skipping rotate")
             return image, target
 
-        image = F.rotate(image, angle, center=None)
+        image = T.rotate(image, angle, center=None)
         return image, target
