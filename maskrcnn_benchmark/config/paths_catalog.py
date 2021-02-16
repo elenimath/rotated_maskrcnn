@@ -8,6 +8,19 @@ class DatasetCatalog(object):
     DATA_DIR = "datasets"
     DATASETS = {
         # CUSTOM STUFF START
+        "beaches_2k_train": {
+            "img_dir": "beaches/2k/train/data_tiles_coast",
+            "ann_file": "beaches/2k/train/annot.json"
+        },
+        "beaches_2k_val": {
+            "img_dir": "beaches/2k/val/data_tiles_coast",
+            "ann_file": "beaches/2k/val/annot.json"
+        },
+        "beaches_2k_test": {
+            "img_dir": "beaches/2k/test/data_tiles_coast",
+            "ann_file": "beaches/2k/test/annot.json"
+        },
+
         "cocopose_2014_debug": {
             "img_dir": "LOV/data",
             "ann_file": "LOV/coco_lov_debug.json"
@@ -148,6 +161,17 @@ class DatasetCatalog(object):
             )
             return dict(
                 factory="PascalVOCDataset",
+                args=args,
+            )
+        elif "beaches" in name:
+            data_dir = DatasetCatalog.DATA_DIR
+            attrs = DatasetCatalog.DATASETS[name]
+            args = dict(
+                root=os.path.join(data_dir, attrs["img_dir"]),
+                ann_file=os.path.join(data_dir, attrs["ann_file"]),
+            )
+            return dict(
+                factory="BeachesDataset",
                 args=args,
             )
         raise RuntimeError("Dataset not available: {}".format(name))
