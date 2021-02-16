@@ -69,6 +69,37 @@ def strip_prefix_if_present(state_dict, prefix):
 
 
 def load_state_dict(model, loaded_state_dict):
+    # calculate image input dimention
+    model_state_dict = model.state_dict()
+    # depending on number of gpus (a bit ugly but it works)
+    try:
+        in_channels = model_state_dict['module.backbone.body.stem.conv1.weight'].shape[1]
+    except:
+        in_channels = model_state_dict['backbone.body.stem.conv1.weight'].shape[1]
+    # if the input has more than 3 channels, save and pop from pretrained model
+    # the first layer, and then put it back
+    if in_channels > 3:
+        rgb_weight = loaded_state_dict['conv1.weight']
+        loaded_state_dict.pop('conv1.bias')
+        loaded_state_dict.pop('conv1.weight')
+    # if the state_dict comes from a model that was wrapped in a
+    # DataParallel or DistributedDataParallel during serialization,
+    # remove the "module" prefix before performing the matching
+    loaded_state_dict = strip_prefix_if_present(loaded_state_dict, prefix="module.")
+    align_and_update_state_dicts(model_state_dict, loaded_state_dict)
+    # load rgb channels weight, and use random ones for channels 4 and 5 (didn't change anything)
+    if in_channels > 3:
+        try:
+            model_state_dict['module.backbone.body.stem.conv1.weight'][:,0:3] = rgb_weight
+        except:
+            model_state_dict['backbone.body.stem.conv1.weight'][:,0:3] = rgb_weight
+
+    # use strict loading
+    model.load_state_dict(model_state_dict)
+
+
+# keep old function, to use it when loading state_dict with correct number of channels
+def load_state_dict_(model, loaded_state_dict):
     model_state_dict = model.state_dict()
     # if the state_dict comes from a model that was wrapped in a
     # DataParallel or DistributedDataParallel during serialization,

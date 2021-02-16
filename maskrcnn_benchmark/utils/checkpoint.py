@@ -4,7 +4,7 @@ import os
 
 import torch
 
-from maskrcnn_benchmark.utils.model_serialization import load_state_dict
+from maskrcnn_benchmark.utils.model_serialization import load_state_dict, load_state_dict_
 from maskrcnn_benchmark.utils.c2_model_loading import load_c2_format
 from maskrcnn_benchmark.utils.imports import import_file
 from maskrcnn_benchmark.utils.model_zoo import cache_url
@@ -106,7 +106,10 @@ class Checkpointer(object):
         return torch.load(f, map_location=torch.device("cpu"))
 
     def _load_model(self, checkpoint):
+        # if "checkpoint" is pre-trained weights with less input channels:
         load_state_dict(self.model, checkpoint.pop("model"))
+        # if "checkpoint" has correct number of input channels:
+        # load_state_dict_(self.model, checkpoint.pop("model"))
 
 
 class DetectronCheckpointer(Checkpointer):
