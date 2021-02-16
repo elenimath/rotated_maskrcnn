@@ -150,6 +150,10 @@ def paste_rotated_roi_in_image(image, roi_image, roi):
 
     w = int(np.round(w))
     h = int(np.round(h))
+    if w == 0:
+        w = 1
+    if h == 0:
+        h = 1
     rh, rw = roi_image.shape[:2]
     if rw != w or rh != h:
         roi_image = cv2.resize(roi_image, (w, h))
